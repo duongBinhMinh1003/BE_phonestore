@@ -1,0 +1,44 @@
+import _sequelize from 'sequelize';
+const { Model, Sequelize } = _sequelize;
+
+export default class chitietphieunhap extends Model {
+  static init(sequelize, DataTypes) {
+  return super.init({
+    maPN: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      primaryKey: true,
+      references: {
+        model: 'phieunhap',
+        key: 'maPN'
+      }
+    },
+    maPB: {
+      type: DataTypes.STRING(50),
+      allowNull: true
+    },
+    soLuong: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false
+    },
+    donGiaNhap: {
+      type: DataTypes.DECIMAL(10,3),
+      allowNull: false
+    }
+  }, {
+    sequelize,
+    tableName: 'chitietphieunhap',
+    timestamps: false,
+    indexes: [
+      {
+        name: "PRIMARY",
+        unique: true,
+        using: "BTREE",
+        fields: [
+          { name: "maPN" },
+        ]
+      },
+    ]
+  });
+  }
+}
