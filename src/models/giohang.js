@@ -26,7 +26,7 @@ export default class giohang extends Model {
       allowNull: true
     },
     donGia: {
-      type: DataTypes.DECIMAL(10,3),
+      type: DataTypes.DOUBLE,
       allowNull: true
     }
   }, {

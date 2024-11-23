@@ -21,10 +21,6 @@ export default class phienbansp extends Model {
       type: DataTypes.FLOAT,
       allowNull: false
     },
-    trangThai: {
-      type: DataTypes.STRING(20),
-      allowNull: false
-    },
     maSP: {
       type: DataTypes.STRING(20),
       allowNull: false,
@@ -38,11 +34,15 @@ export default class phienbansp extends Model {
       allowNull: true
     },
     giaGiam: {
-      type: DataTypes.DECIMAL(10,3),
+      type: DataTypes.DOUBLE,
       allowNull: true
     },
     giaBan: {
-      type: DataTypes.DECIMAL(10,3),
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    trangThai: {
+      type: DataTypes.ENUM('on','off'),
       allowNull: true
     }
   }, {

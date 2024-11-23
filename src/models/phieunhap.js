@@ -10,20 +10,20 @@ export default class phieunhap extends Model {
       primaryKey: true
     },
     ngayTao: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATEONLY,
       allowNull: false
     },
     tongTien: {
-      type: DataTypes.DECIMAL(10,3),
-      allowNull: false
+      type: DataTypes.DOUBLE,
+      allowNull: true
     },
     trangThai: {
-      type: DataTypes.STRING(20),
-      allowNull: false
+      type: DataTypes.ENUM('chua xac nhan','da nhap'),
+      allowNull: true
     },
     maNV: {
       type: DataTypes.STRING(50),
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'nhanvien',
         key: 'maNV'
@@ -31,7 +31,7 @@ export default class phieunhap extends Model {
     },
     maNCC: {
       type: DataTypes.STRING(20),
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'nhacungcap',
         key: 'maNCC'

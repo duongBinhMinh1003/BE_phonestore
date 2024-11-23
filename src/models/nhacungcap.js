@@ -26,8 +26,8 @@ export default class nhacungcap extends Model {
       allowNull: false
     },
     trangThai: {
-      type: DataTypes.STRING(20),
-      allowNull: false
+      type: DataTypes.ENUM('on','off'),
+      allowNull: true
     }
   }, {
     sequelize,

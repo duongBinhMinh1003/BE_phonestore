@@ -12,10 +12,6 @@ export default class phieudoitra extends Model {
       type: DataTypes.STRING(50),
       allowNull: false
     },
-    loai: {
-      type: DataTypes.ENUM('doi','tra'),
-      allowNull: false
-    },
     ngayDoiTra: {
       type: DataTypes.DATEONLY,
       allowNull: false
@@ -26,11 +22,15 @@ export default class phieudoitra extends Model {
     },
     maKH: {
       type: DataTypes.STRING(50),
-      allowNull: false
+      allowNull: true
     },
     maNV: {
       type: DataTypes.STRING(50),
-      allowNull: false
+      allowNull: true
+    },
+    trangThai: {
+      type: DataTypes.ENUM('xac nhan','chua xac nhan'),
+      allowNull: true
     }
   }, {
     sequelize,

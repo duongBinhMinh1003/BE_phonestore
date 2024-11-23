@@ -10,8 +10,8 @@ export default class chitietsanpham extends Model {
       primaryKey: true
     },
     trangThai: {
-      type: DataTypes.STRING(20),
-      allowNull: false
+      type: DataTypes.ENUM('dang ban','dang bao hanh','da ban'),
+      allowNull: true
     },
     ngayNhap: {
       type: DataTypes.DATEONLY,

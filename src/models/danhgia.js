@@ -9,7 +9,7 @@ export default class danhgia extends Model {
       allowNull: false
     },
     ngayDG: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATEONLY,
       allowNull: false
     },
     soSao: {

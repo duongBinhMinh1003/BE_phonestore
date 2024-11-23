@@ -33,10 +33,6 @@ export default class sanpham extends Model {
       type: DataTypes.STRING(20),
       allowNull: false
     },
-    soLuong: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false
-    },
     heDieuHanh: {
       type: DataTypes.STRING(30),
       allowNull: false

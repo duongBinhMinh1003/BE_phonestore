@@ -18,7 +18,7 @@ export default class phieutra extends Model {
       allowNull: true
     },
     hoanTien: {
-      type: DataTypes.DECIMAL(10,3),
+      type: DataTypes.DOUBLE,
       allowNull: true
     },
     maKH: {

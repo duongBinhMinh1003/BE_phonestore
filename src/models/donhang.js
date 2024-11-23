@@ -5,25 +5,25 @@ export default class donhang extends Model {
   static init(sequelize, DataTypes) {
   return super.init({
     maDH: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.STRING(50),
       allowNull: false,
       primaryKey: true
     },
     diaChiNhan: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.STRING(250),
       allowNull: false
     },
     ngayDat: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATEONLY,
       allowNull: false
     },
     tongTien: {
       type: DataTypes.DECIMAL(10,3),
       allowNull: false
     },
-    hinhThucThanhToan: {
-      type: DataTypes.STRING(50),
-      allowNull: false
+    httt: {
+      type: DataTypes.ENUM('cod','online'),
+      allowNull: true
     },
     trangThai: {
       type: DataTypes.STRING(20),
@@ -31,7 +31,7 @@ export default class donhang extends Model {
     },
     maKH: {
       type: DataTypes.STRING(20),
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'khachhang',
         key: 'maKH'
@@ -39,7 +39,7 @@ export default class donhang extends Model {
     },
     maNV: {
       type: DataTypes.STRING(20),
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'nhanvien',
         key: 'maNV'
@@ -47,7 +47,7 @@ export default class donhang extends Model {
     },
     maKM: {
       type: DataTypes.STRING(20),
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'khuyenmai',
         key: 'maKM'

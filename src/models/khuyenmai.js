@@ -10,7 +10,7 @@ export default class khuyenmai extends Model {
       primaryKey: true
     },
     moTa: {
-      type: DataTypes.STRING(30),
+      type: DataTypes.STRING(250),
       allowNull: false
     },
     dieuKien: {
@@ -18,8 +18,8 @@ export default class khuyenmai extends Model {
       allowNull: false
     },
     mucGiam: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false
+      type: DataTypes.DOUBLE,
+      allowNull: true
     },
     trangThai: {
       type: DataTypes.STRING(20),

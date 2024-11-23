@@ -22,8 +22,8 @@ export default class chitietphieunhap extends Model {
       allowNull: false
     },
     donGiaNhap: {
-      type: DataTypes.DECIMAL(10,3),
-      allowNull: false
+      type: DataTypes.DOUBLE,
+      allowNull: true
     }
   }, {
     sequelize,

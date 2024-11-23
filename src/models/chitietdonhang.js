@@ -22,7 +22,7 @@ export default class chitietdonhang extends Model {
       }
     },
     donGia: {
-      type: DataTypes.DECIMAL(10,3),
+      type: DataTypes.DOUBLE,
       allowNull: true
     }
   }, {

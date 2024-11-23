@@ -5,7 +5,7 @@ export default class lsdonhang extends Model {
   static init(sequelize, DataTypes) {
   return super.init({
     thoiGian: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATEONLY,
       allowNull: true
     },
     tinhTrang: {
