@@ -14,7 +14,7 @@ export default class sanpham extends Model {
       allowNull: false
     },
     hinhAnh: {
-      type: DataTypes.STRING(2048),
+      type: DataTypes.TEXT,
       allowNull: false
     },
     thuongHieu: {

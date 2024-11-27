@@ -6,7 +6,8 @@ export default class phieudoitra extends Model {
   return super.init({
     maPhieu: {
       type: DataTypes.STRING(50),
-      allowNull: false
+      allowNull: false,
+      primaryKey: true
     },
     soSeri: {
       type: DataTypes.STRING(50),
@@ -35,7 +36,17 @@ export default class phieudoitra extends Model {
   }, {
     sequelize,
     tableName: 'phieudoitra',
-    timestamps: false
+    timestamps: false,
+    indexes: [
+      {
+        name: "PRIMARY",
+        unique: true,
+        using: "BTREE",
+        fields: [
+          { name: "maPhieu" },
+        ]
+      },
+    ]
   });
   }
 }

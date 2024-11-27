@@ -13,17 +13,26 @@ export default class chitietdonhang extends Model {
         key: 'maDH'
       }
     },
-    maPB: {
+    soSeri: {
       type: DataTypes.STRING(50),
+      allowNull: false,
+      primaryKey: true,
+      references: {
+        model: 'chitietsanpham',
+        key: 'soSeri'
+      }
+    },
+    giaBan: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    maPB: {
+      type: DataTypes.STRING(20),
       allowNull: true,
       references: {
         model: 'phienbansp',
         key: 'maPB'
       }
-    },
-    donGia: {
-      type: DataTypes.DOUBLE,
-      allowNull: true
     }
   }, {
     sequelize,
@@ -36,6 +45,14 @@ export default class chitietdonhang extends Model {
         using: "BTREE",
         fields: [
           { name: "maDH" },
+          { name: "soSeri" },
+        ]
+      },
+      {
+        name: "soSeri",
+        using: "BTREE",
+        fields: [
+          { name: "soSeri" },
         ]
       },
       {

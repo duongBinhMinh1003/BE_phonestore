@@ -41,10 +41,14 @@ export default function initModels(sequelize) {
   const sanpham = _sanpham.init(sequelize, DataTypes);
   const taikhoan = _taikhoan.init(sequelize, DataTypes);
 
+  chitietsanpham.belongsToMany(donhang, { as: 'maDH_donhangs', through: chitietdonhang, foreignKey: "soSeri", otherKey: "maDH" });
+  donhang.belongsToMany(chitietsanpham, { as: 'soSeri_chitietsanphams', through: chitietdonhang, foreignKey: "maDH", otherKey: "soSeri" });
+  chitietdonhang.belongsTo(chitietsanpham, { as: "soSeri_chitietsanpham", foreignKey: "soSeri"});
+  chitietsanpham.hasMany(chitietdonhang, { as: "chitietdonhangs", foreignKey: "soSeri"});
   phieubaohanh.belongsTo(chitietsanpham, { as: "soSeri_chitietsanpham", foreignKey: "soSeri"});
   chitietsanpham.hasMany(phieubaohanh, { as: "phieubaohanhs", foreignKey: "soSeri"});
   chitietdonhang.belongsTo(donhang, { as: "maDH_donhang", foreignKey: "maDH"});
-  donhang.hasOne(chitietdonhang, { as: "chitietdonhang", foreignKey: "maDH"});
+  donhang.hasMany(chitietdonhang, { as: "chitietdonhangs", foreignKey: "maDH"});
   lsdonhang.belongsTo(donhang, { as: "maDH_donhang", foreignKey: "maDH"});
   donhang.hasMany(lsdonhang, { as: "lsdonhangs", foreignKey: "maDH"});
   phieutra.belongsTo(donhang, { as: "maDH_donhang", foreignKey: "maDH"});

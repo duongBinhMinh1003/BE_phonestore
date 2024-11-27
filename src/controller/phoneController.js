@@ -473,7 +473,52 @@ const getNhaCungCap = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const getOrder = async (req, res) => {
+  const { maKH } = req.params; // Lấy mã khách hàng từ URL hoặc req.body nếu dùng POST
 
+  try {
+    // Tìm các đơn hàng có mã khách hàng tương ứng
+    const donhang = await models.donhang.findAll({
+      where: { maKH }, // Điều kiện lọc theo mã khách hàng
+    });
+
+    // Kiểm tra nếu không có đơn hàng nào
+    if (donhang.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng nào cho mã khách hàng này.",
+      });
+    }
+
+    responseData(res, "Lấy danh sách đơn hàng thành công", 200, donhang);
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu phiếu đơn hàng:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+const getChiTietOrder = async (req, res) => {
+  const { maDH } = req.params; // Lấy mã khách hàng từ URL hoặc req.body nếu dùng POST
+
+  try {
+    // Tìm các đơn hàng có mã khách hàng tương ứng
+    const donhang = await models.chitietdonhang.findAll({
+      where: { maDH }, // Điều kiện lọc theo mã khách hàng
+    });
+
+    // Kiểm tra nếu không có đơn hàng nào
+    if (donhang.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng nào cho mã khách hàng này.",
+      });
+    }
+
+    responseData(res, "Lấy danh sách đơn hàng thành công", 200, donhang);
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu phiếu đơn hàng:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 const updateNhaCungCap = async (req, res) => {
   try {
     // Lấy dữ liệu từ request body (cập nhật tất cả các thuộc tính)
@@ -966,6 +1011,102 @@ const addPhienBan = async (req, res) => {
   }
 };
 
+const getSPById = async (req, res) => {
+  const { maSP } = req.params; // Lấy maSP từ tham số URL
+
+  try {
+    // Tìm sản phẩm theo maSP và kèm theo dữ liệu từ bảng phienbansp
+    const sanPham = await models.sanpham.findOne({
+      where: { maSP }, // Điều kiện lọc theo maSP
+      include: [
+        {
+          model: models.phienbansp, // Kết nối với bảng phienbansp
+          as: "phienbansps", // Alias đã khai báo trong quan hệ
+          attributes: ["RAM", "mauSac", "giaBan", "ROM", "maPB"], // Các cột cần lấy từ bảng phienbansp
+        },
+      ],
+    });
+
+    // Kiểm tra nếu không tìm thấy sản phẩm
+    if (!sanPham) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+
+    // Trả về thông tin sản phẩm cùng với các phiên bản sản phẩm
+    return res.status(200).json({
+      message: "Lấy sản phẩm thành công",
+      sanPham,
+    });
+  } catch (error) {
+    console.error("Error in getSanPhamById:", error);
+    return res.status(500).json({ message: "Lỗi hệ thống", error });
+  }
+};
+const getSanPhamBySeri = async (req, res) => {
+  const { soSeri } = req.params; // Lấy số seri từ URL
+
+  try {
+    // Tìm sản phẩm theo số seri và kết hợp dữ liệu từ bảng phienbansanpham
+    const sanpham = await models.chitietsanpham.findOne({
+      where: { soSeri }, // Điều kiện lọc theo số seri
+      include: [
+        {
+          model: models.phienbansp, // Bảng liên kết
+          as: "maPB_phienbansp", // Alias đã khai báo trong quan hệ
+          attributes: ["RAM", "mauSac", "giaGiam", "ROM", "maSP", "ROM"], // Các cột cần lấy từ phienbansanpham
+        },
+      ],
+    });
+
+    // Kiểm tra nếu không tìm thấy sản phẩm
+    if (!sanpham) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy sản phẩm với số seri này.",
+      });
+    }
+
+    // Trả về dữ liệu
+    responseData(res, "Lấy thông tin sản phẩm thành công", 200, sanpham);
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu sản phẩm:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+const getChiTietBymaPb = async (req, res) => {
+  const { maPB } = req.params;
+
+  // Kiểm tra nếu maPB không tồn tại hoặc không hợp lệ
+  if (!maPB) {
+    return res.status(400).json({
+      success: false,
+      message: "Mã phiên bản (maPB) là bắt buộc.",
+    });
+  }
+
+  try {
+    // Tìm kiếm chi tiết sản phẩm với mã phiên bản maPB
+    const chitiet = await models.chitietsanpham.findOne({
+      where: { maPB },
+    });
+
+    // Kiểm tra nếu không tìm thấy sản phẩm
+    if (!chitiet) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy sản phẩm với mã phiên bản này.",
+      });
+    }
+
+    // Trả về dữ liệu sản phẩm chi tiết
+
+    return responseData(res, "Lấy thông tin sản phẩm thành công", 200, chitiet);
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu sản phẩm:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export {
   getPhone,
   getPhienBan,
@@ -992,4 +1133,9 @@ export {
   getNhaCungCap,
   updateNhaCungCap,
   addNhaCungCap,
+  getOrder,
+  getChiTietOrder,
+  getSPById,
+  getSanPhamBySeri,
+  getChiTietBymaPb,
 };
