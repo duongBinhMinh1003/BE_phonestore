@@ -30,6 +30,12 @@ import {
   getSPById,
   getSanPhamBySeri,
   getChiTietBymaPb,
+  addChiTietPhieuNhap,
+  saveCart,
+  updateCart,
+  checkCart,
+  deleteCart,
+  getCart,
 } from "../controller/phoneController.js";
 const phoneRouter = express.Router();
 
@@ -43,6 +49,8 @@ phoneRouter.get("/getPhoneById/", getSanPhamById);
 phoneRouter.get("/get-spbyid/:maSP", getSPById);
 phoneRouter.get("/get-sanphambyseri/:soSeri", getSanPhamBySeri);
 phoneRouter.get("/get-promotion/", getKhuyenMai);
+phoneRouter.post("/check-cart", checkCart);
+phoneRouter.post("/delete-cart", deleteCart);
 phoneRouter.get("/get-promotionById", getKhuyenMaiById);
 phoneRouter.get("/get-ctbymapb/:maPB", getChiTietBymaPb);
 phoneRouter.put("/update-promotion", updateKhuyenMai);
@@ -56,6 +64,7 @@ phoneRouter.get("/get-order/:maKH", getOrder);
 phoneRouter.get("/get-chitietorder/:maDH", getChiTietOrder);
 phoneRouter.put("/update-phieunhap", updatePhieuNhap);
 phoneRouter.post("/add-phieunhap", addPhieuNhap);
+phoneRouter.post("/add-chitietphieunhap", addChiTietPhieuNhap);
 phoneRouter.post("/delete-phieunhap", deletePhieuNhap);
 phoneRouter.put("/update-sanpham", updatePhone);
 phoneRouter.post("/add-phone", addPhone);
@@ -63,4 +72,7 @@ phoneRouter.put("/update-phienban", updatePhienBan);
 phoneRouter.put("/update-nhacungcap", updateNhaCungCap);
 phoneRouter.post("/add-phienban", addPhienBan);
 phoneRouter.post("/add-nhacungcap", addNhaCungCap);
+phoneRouter.post("/save-cart", saveCart);
+phoneRouter.put("/update-cart", updateCart);
+phoneRouter.post("/get-cart", getCart);
 export default phoneRouter;

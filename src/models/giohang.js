@@ -15,7 +15,8 @@ export default class giohang extends Model {
     },
     maPB: {
       type: DataTypes.STRING(50),
-      allowNull: true,
+      allowNull: false,
+      primaryKey: true,
       references: {
         model: 'phienbansp',
         key: 'maPB'
@@ -40,6 +41,7 @@ export default class giohang extends Model {
         using: "BTREE",
         fields: [
           { name: "maKH" },
+          { name: "maPB" },
         ]
       },
       {

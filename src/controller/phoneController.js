@@ -278,11 +278,17 @@ const getPhienBan = async (req, res) => {
       include: [
         {
           model: models.sanpham,
-          as: "maSP_sanpham",
-          attributes: ["maSP", "tenSP", "hinhAnh"],
+          as: "maSP_sanpham", // Alias của bảng `sanpham`
+          attributes: ["maSP", "tenSP", "hinhAnh"], // Các cột cần lấy
+        },
+        {
+          model: models.chitietphieunhap,
+          as: "chitietphieunhaps", // Alias của bảng `chitietphieunhap`
+          attributes: ["maPN", "soLuong", "donGiaNhap"], // Các cột cần lấy từ bảng `chitietphieunhap`
         },
       ],
     });
+
     responseData(res, "Lấy phiên bản sản phẩm thành công", 200, products);
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu phiên bản sản phẩm:", error);
@@ -818,25 +824,14 @@ const updatePhieuNhap = async (req, res) => {
 const addPhieuNhap = async (req, res) => {
   try {
     // Lấy dữ liệu từ body của request
-    const { ngayTao, tongTien, trangThai, maNV, maNCC } = req.body;
-
-    // Lấy bảo hành gần nhất để tạo mã mới
-    const lastPhieuNhap = await models.phieunhap.findOne({
-      order: [["maPN", "DESC"]], // Sắp xếp theo maPBH giảm dần
-      attributes: ["maPN"], // Chỉ lấy trường maPBH
-    });
-
-    // Tạo mã bảo hành mới dựa trên mã bảo hành gần nhất
-    const newMaPN = lastPhieuNhap
-      ? `PN0${parseInt(lastPhieuNhap.maPN.slice(3)) + 1}`
-      : "PN1";
+    const { maPN, ngayTao, tongTien, trangThai, maNV, maNCC } = req.body;
 
     // Tạo đối tượng mới cho bảo hành và lưu vào cơ sở dữ liệu
     const newPhieuNhap = await models.phieunhap.create({
-      maPN: newMaPN,
-      ngayTao,
+      maPN: maPN,
+      ngayTao: new Date(),
       tongTien,
-      trangThai,
+      trangThai: "chua xac nhan",
       maNV,
       maNCC,
     });
@@ -891,6 +886,34 @@ const deletePhieuNhap = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Có lỗi xảy ra khi xóa phiếu bảo hành.",
+    });
+  }
+};
+
+const addChiTietPhieuNhap = async (req, res) => {
+  try {
+    // Lấy dữ liệu từ body của request
+    const { maPN, maPB, soLuong, donGiaNhap } = req.body;
+
+    // Tạo đối tượng mới cho bảo hành và lưu vào cơ sở dữ liệu
+    const newPhieuNhap = await models.chitietphieunhap.create({
+      maPN,
+      maPB,
+      soLuong,
+      donGiaNhap,
+    });
+
+    // Trả về kết quả thành công
+    res.status(201).json({
+      success: true,
+      message: "CTPN đã được thêm thành công!",
+      data: newPhieuNhap,
+    });
+  } catch (error) {
+    console.error("Lỗi khi thêm CTPN:", error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi thêm CTPN.",
     });
   }
 };
@@ -1107,6 +1130,246 @@ const getChiTietBymaPb = async (req, res) => {
   }
 };
 
+const saveCart = async (req, res) => {
+  try {
+    // Lấy dữ liệu từ body của request
+    const { maKH, maPB, soLuong, donGia } = req.body;
+
+    // Kiểm tra xem sản phẩm đã có trong giỏ hàng của khách hàng chưa
+    const existingItem = await models.giohang.findOne({
+      where: { maKH, maPB },
+    });
+
+    if (existingItem) {
+      // Nếu sản phẩm đã có trong giỏ hàng, cập nhật số lượng
+      existingItem.soLuong++; // Tăng số lượng
+      existingItem.donGia = donGia; // Cập nhật đơn giá (nếu cần)
+      await existingItem.save(); // Lưu thay đổi vào cơ sở dữ liệu
+
+      return res.status(200).json({
+        success: true,
+        message: "Sản phẩm đã được cập nhật vào giỏ hàng!",
+        data: existingItem,
+      });
+    } else {
+      // Nếu sản phẩm chưa có trong giỏ hàng, thêm sản phẩm mới
+      const newItem = await models.giohang.create({
+        maKH,
+        maPB,
+        soLuong,
+        donGia,
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: "Sản phẩm đã được thêm vào giỏ hàng!",
+        data: newItem,
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng.",
+    });
+  }
+};
+const checkCart = async (req, res) => {
+  try {
+    const { maKH, maPB } = req.body;
+
+    // Kiểm tra nếu không có `maKH` hoặc `maPB`
+    if (!maKH || !maPB) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu mã khách hàng hoặc mã sản phẩm.",
+      });
+    }
+
+    // Tìm sản phẩm trong giỏ hàng dựa trên `maKH` và `maPB`
+    const cartItem = await models.giohang.findOne({
+      where: { maKH, maPB },
+    });
+
+    // Kiểm tra nếu không tìm thấy sản phẩm trong giỏ hàng
+    if (!cartItem) {
+      return res.status(200).json({
+        success: true,
+        message: "Sản phẩm không có trong giỏ hàng.",
+        exists: false, // Thêm trường `exists` để phản ánh tình trạng sản phẩm
+      });
+    }
+
+    // Trả về thông tin giỏ hàng nếu sản phẩm tồn tại
+    return res.status(200).json({
+      success: true,
+      message: "Sản phẩm tồn tại trong giỏ hàng.",
+      exists: true,
+      data: cartItem, // Trả về thông tin chi tiết sản phẩm trong giỏ hàng nếu cần thiết
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy giỏ hàng:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi lấy giỏ hàng.",
+    });
+  }
+};
+const updateCart = async (req, res) => {
+  try {
+    // Lấy dữ liệu từ body của request
+    const { maKH, maPB, soLuong, donGia } = req.body;
+
+    // Kiểm tra xem các thông tin có đầy đủ không
+    if (!maKH || !maPB || soLuong === undefined || donGia === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu thông tin yêu cầu (maKH, maPB, soLuong, donGia).",
+      });
+    }
+
+    // Tìm sản phẩm trong giỏ hàng của khách hàng
+    const cartItem = await models.giohang.findOne({
+      where: { maKH, maPB },
+    });
+
+    // Kiểm tra nếu sản phẩm không tồn tại trong giỏ hàng
+    if (!cartItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Sản phẩm không tồn tại trong giỏ hàng.",
+      });
+    }
+
+    // Cập nhật số lượng và đơn giá
+    cartItem.soLuong = soLuong;
+    cartItem.donGia = donGia;
+
+    // Lưu thay đổi vào cơ sở dữ liệu
+    await cartItem.save();
+
+    // Trả về phản hồi thành công
+    return res.status(200).json({
+      success: true,
+      message: "Giỏ hàng đã được cập nhật thành công!",
+      data: cartItem,
+    });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật giỏ hàng:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi cập nhật giỏ hàng.",
+    });
+  }
+};
+const deleteCart = async (req, res) => {
+  try {
+    const { maPB, maKH } = req.body;
+
+    // Kiểm tra đầu vào
+    if (!maKH || !maPB) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu thông tin mã khách hàng hoặc mã sản phẩm.",
+      });
+    }
+
+    // Xóa sản phẩm khỏi giỏ hàng
+    const result = await models.giohang.destroy({
+      where: { maPB, maKH },
+    });
+
+    // Kiểm tra kết quả xóa
+    if (result === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy sản phẩm trong giỏ hàng để xóa.",
+      });
+    }
+
+    // Phản hồi thành công
+    return res.status(200).json({
+      success: true,
+      message: "Sản phẩm đã được xóa khỏi giỏ hàng.",
+    });
+  } catch (error) {
+    console.error("Lỗi khi xóa sản phẩm khỏi giỏ hàng:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi xóa sản phẩm khỏi giỏ hàng.",
+    });
+  }
+};
+const getCart = async (req, res) => {
+  try {
+    const { maKH } = req.body;
+
+    // Kiểm tra nếu không có `maKH`
+    if (!maKH) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu mã khách hàng.",
+      });
+    }
+
+    // Lấy thông tin giỏ hàng từ cơ sở dữ liệu cùng với thông tin phiên bản sản phẩm và thông tin sản phẩm
+    const cartItems = await models.giohang.findAll({
+      where: { maKH },
+      include: [
+        {
+          model: models.phienbansp,
+          as: "maPB_phienbansp", // Alias cho quan hệ
+          required: true, // Bắt buộc phải có phiên bản sản phẩm
+          include: [
+            {
+              model: models.sanpham, // Kết hợp với bảng `sanpham`
+              as: "maSP_sanpham", // Alias cho quan hệ
+              required: true, // Bắt buộc phải có sản phẩm
+              attributes: [
+                "maSP", // Mã sản phẩm
+                "tenSP", // Tên sản phẩm
+                "hinhAnh", // Hình ảnh sản phẩm
+              ],
+            },
+          ],
+          attributes: [
+            "maPB", // Mã phiên bản
+            "mauSac", // Màu sắc
+            "RAM", // Bộ nhớ RAM
+            "ROM", // Bộ nhớ trong
+            "trangThai", // Trạng thái
+            "giaGiam", // Giá giảm
+            "giaBan", // Giá bán
+            "soLuong", // Số lượng
+          ],
+        },
+      ],
+    });
+
+    // Kiểm tra nếu giỏ hàng trống
+    if (!cartItems || cartItems.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "Giỏ hàng trống.",
+        data: [],
+      });
+    }
+
+    // Trả về thông tin giỏ hàng cùng với dữ liệu phiên bản sản phẩm và sản phẩm
+    return res.status(200).json({
+      success: true,
+      message: "Lấy giỏ hàng thành công.",
+      data: cartItems,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy giỏ hàng:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi lấy giỏ hàng.",
+    });
+  }
+};
+
 export {
   getPhone,
   getPhienBan,
@@ -1138,4 +1401,10 @@ export {
   getSPById,
   getSanPhamBySeri,
   getChiTietBymaPb,
+  addChiTietPhieuNhap,
+  saveCart,
+  checkCart,
+  updateCart,
+  deleteCart,
+  getCart,
 };

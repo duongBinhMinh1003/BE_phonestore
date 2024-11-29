@@ -15,7 +15,12 @@ export default class chitietphieunhap extends Model {
     },
     maPB: {
       type: DataTypes.STRING(50),
-      allowNull: true
+      allowNull: false,
+      primaryKey: true,
+      references: {
+        model: 'phienbansp',
+        key: 'maPB'
+      }
     },
     soLuong: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -36,6 +41,14 @@ export default class chitietphieunhap extends Model {
         using: "BTREE",
         fields: [
           { name: "maPN" },
+          { name: "maPB" },
+        ]
+      },
+      {
+        name: "maPB",
+        using: "BTREE",
+        fields: [
+          { name: "maPB" },
         ]
       },
     ]
