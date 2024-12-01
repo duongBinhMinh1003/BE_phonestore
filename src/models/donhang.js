@@ -18,11 +18,11 @@ export default class donhang extends Model {
       allowNull: false
     },
     tongTien: {
-      type: DataTypes.DECIMAL(10,3),
-      allowNull: false
+      type: DataTypes.DOUBLE,
+      allowNull: true
     },
     httt: {
-      type: DataTypes.ENUM('cod','online'),
+      type: DataTypes.STRING(250),
       allowNull: true
     },
     trangThai: {

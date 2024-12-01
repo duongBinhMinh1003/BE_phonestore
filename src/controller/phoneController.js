@@ -300,7 +300,7 @@ const getSanPhamById = async (req, res) => {
   const { id } = req.query;
 
   try {
-    // Tìm sản phẩm theo id và kèm theo dữ liệu từ bảng phienbansp
+    // Tìm sản phẩm theo id và kèm theo dữ liệu từ bảng phienbansp và chitietsanpham
     const sanPham = await models.sanpham.findOne({
       where: { maSP: id }, // Điều kiện tìm kiếm sản phẩm theo maSP
       include: [
@@ -316,6 +316,13 @@ const getSanPhamById = async (req, res) => {
             "giaGiam",
             "giaBan",
           ],
+          include: [
+            {
+              model: models.chitietsanpham,
+              as: "chitietsanphams", // Tên alias cho quan hệ giữa phienbansp và chitietsanpham
+              attributes: ["soSeri", "ngayNhap", "trangThai"],
+            },
+          ],
         },
       ],
     });
@@ -325,7 +332,7 @@ const getSanPhamById = async (req, res) => {
       return res.status(404).json({ message: "Sản phẩm không tồn tại" });
     }
 
-    // Trả về thông tin sản phẩm cùng với các phiên bản sản phẩm
+    // Trả về thông tin sản phẩm cùng với các phiên bản sản phẩm và chi tiết sản phẩm
     return res.status(200).json({
       message: "Lấy sản phẩm thành công",
       sanPham,
@@ -1135,37 +1142,27 @@ const saveCart = async (req, res) => {
     // Lấy dữ liệu từ body của request
     const { maKH, maPB, soLuong, donGia } = req.body;
 
-    // Kiểm tra xem sản phẩm đã có trong giỏ hàng của khách hàng chưa
-    const existingItem = await models.giohang.findOne({
-      where: { maKH, maPB },
-    });
-
-    if (existingItem) {
-      // Nếu sản phẩm đã có trong giỏ hàng, cập nhật số lượng
-      existingItem.soLuong++; // Tăng số lượng
-      existingItem.donGia = donGia; // Cập nhật đơn giá (nếu cần)
-      await existingItem.save(); // Lưu thay đổi vào cơ sở dữ liệu
-
-      return res.status(200).json({
-        success: true,
-        message: "Sản phẩm đã được cập nhật vào giỏ hàng!",
-        data: existingItem,
-      });
-    } else {
-      // Nếu sản phẩm chưa có trong giỏ hàng, thêm sản phẩm mới
-      const newItem = await models.giohang.create({
-        maKH,
-        maPB,
-        soLuong,
-        donGia,
-      });
-
-      return res.status(201).json({
-        success: true,
-        message: "Sản phẩm đã được thêm vào giỏ hàng!",
-        data: newItem,
+    // Kiểm tra xem tất cả các tham số đã được gửi chưa
+    if (!maKH || !maPB || !soLuong || !donGia) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu thông tin cần thiết. Vui lòng kiểm tra lại.",
       });
     }
+
+    // Tạo một mục mới trong giỏ hàng
+    const newItem = await models.giohang.create({
+      maKH,
+      maPB,
+      soLuong,
+      donGia,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Sản phẩm đã được thêm vào giỏ hàng!",
+      data: newItem,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -1174,6 +1171,7 @@ const saveCart = async (req, res) => {
     });
   }
 };
+
 const checkCart = async (req, res) => {
   try {
     const { maKH, maPB } = req.body;
@@ -1242,8 +1240,8 @@ const updateCart = async (req, res) => {
     }
 
     // Cập nhật số lượng và đơn giá
-    cartItem.soLuong = soLuong;
-    cartItem.donGia = donGia;
+    cartItem.soLuong++;
+    cartItem.donGia = donGia * cartItem.soLuong;
 
     // Lưu thay đổi vào cơ sở dữ liệu
     await cartItem.save();
@@ -1300,6 +1298,44 @@ const deleteCart = async (req, res) => {
     });
   }
 };
+const deleteCartKh = async (req, res) => {
+  try {
+    const { maKH } = req.body;
+
+    // Kiểm tra đầu vào
+    if (!maKH) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu thông tin mã khách hàng.",
+      });
+    }
+
+    // Xóa sản phẩm khỏi giỏ hàng
+    const result = await models.giohang.destroy({
+      where: { maKH },
+    });
+
+    // Kiểm tra kết quả xóa
+    if (result === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy sản phẩm trong giỏ hàng để xóa.",
+      });
+    }
+
+    // Phản hồi thành công
+    return res.status(200).json({
+      success: true,
+      message: "Sản phẩm đã được xóa khỏi giỏ hàng.",
+    });
+  } catch (error) {
+    console.error("Lỗi khi xóa sản phẩm khỏi giỏ hàng:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi xóa sản phẩm khỏi giỏ hàng.",
+    });
+  }
+};
 const getCart = async (req, res) => {
   try {
     const { maKH } = req.body;
@@ -1312,23 +1348,33 @@ const getCart = async (req, res) => {
       });
     }
 
-    // Lấy thông tin giỏ hàng từ cơ sở dữ liệu cùng với thông tin phiên bản sản phẩm và thông tin sản phẩm
+    // Lấy thông tin giỏ hàng từ cơ sở dữ liệu
     const cartItems = await models.giohang.findAll({
       where: { maKH },
       include: [
         {
           model: models.phienbansp,
-          as: "maPB_phienbansp", // Alias cho quan hệ
+          as: "maPB_phienbansp", // Alias cho quan hệ giữa `giohang` và `phienbansp`
           required: true, // Bắt buộc phải có phiên bản sản phẩm
           include: [
             {
               model: models.sanpham, // Kết hợp với bảng `sanpham`
-              as: "maSP_sanpham", // Alias cho quan hệ
-              required: true, // Bắt buộc phải có sản phẩm
+              as: "maSP_sanpham", // Alias cho quan hệ giữa `phienbansp` và `sanpham`
+              required: true,
               attributes: [
                 "maSP", // Mã sản phẩm
                 "tenSP", // Tên sản phẩm
                 "hinhAnh", // Hình ảnh sản phẩm
+              ],
+            },
+            {
+              model: models.chitietsanpham, // Kết hợp với bảng `chitietsanpham`
+              as: "chitietsanphams", // Alias cho quan hệ giữa `phienbansp` và `chitietsanpham`
+              required: false, // Không bắt buộc phải có chi tiết sản phẩm
+              attributes: [
+                "soSeri", // Số seri
+                "ngayNhap", // Ngày nhập kho
+                "trangThai", // Trạng thái chi tiết sản phẩm
               ],
             },
           ],
@@ -1340,7 +1386,6 @@ const getCart = async (req, res) => {
             "trangThai", // Trạng thái
             "giaGiam", // Giá giảm
             "giaBan", // Giá bán
-            "soLuong", // Số lượng
           ],
         },
       ],
@@ -1355,7 +1400,7 @@ const getCart = async (req, res) => {
       });
     }
 
-    // Trả về thông tin giỏ hàng cùng với dữ liệu phiên bản sản phẩm và sản phẩm
+    // Trả về thông tin giỏ hàng cùng với dữ liệu phiên bản sản phẩm, sản phẩm, và chi tiết sản phẩm
     return res.status(200).json({
       success: true,
       message: "Lấy giỏ hàng thành công.",
@@ -1366,6 +1411,141 @@ const getCart = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Có lỗi xảy ra khi lấy giỏ hàng.",
+    });
+  }
+};
+
+const addDonHang = async (req, res) => {
+  const { diaChiNhan, tongTien, httt, maKH } = req.body;
+
+  try {
+    // Kiểm tra dữ liệu đầu vào
+    if (!diaChiNhan || !tongTien || !httt || !maKH) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng điền đầy đủ thông tin đơn hàng.",
+      });
+    }
+
+    // Lấy mã đơn hàng gần nhất để tạo mã mới
+    const lastDonHang = await models.donhang.findOne({
+      order: [["maDH", "DESC"]], // Sắp xếp theo maDH giảm dần
+      attributes: ["maDH"], // Chỉ lấy trường maDH
+    });
+
+    // Tạo mã đơn hàng mới dựa trên mã đơn hàng gần nhất
+    const newMaDH = lastDonHang
+      ? `DH0${parseInt(lastDonHang.maDH.slice(3)) + 1}`
+      : "DH01"; // Nếu không có đơn hàng nào, tạo mã đơn hàng đầu tiên là "maDH1"
+
+    // Tạo đối tượng đơn hàng mới
+    const donHang = await models.donhang.create({
+      maDH: newMaDH,
+      diaChiNhan,
+      ngayDat: new Date(),
+      tongTien,
+      httt, // Hình thức thanh toán
+      trangThai: "Đang xử lí", // Trạng thái đơn hàng (ví dụ: 'Chờ xử lý', 'Đang giao', 'Hoàn thành', ...)
+      maKH, // Mã khách hàng
+    });
+
+    // Trả về phản hồi thành công
+    res.status(201).json({
+      success: true,
+      message: "Đơn hàng đã được tạo thành công!",
+      data: donHang,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi tạo đơn hàng.",
+    });
+  }
+};
+const getChiTietSanPhamBymaPB = async (req, res) => {
+  const { maPB } = req.body; // Lấy mã phiên bản sản phẩm từ body
+
+  try {
+    // Kiểm tra nếu không có maPB
+    if (!maPB) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng cung cấp mã phiên bản sản phẩm.",
+      });
+    }
+
+    // Truy vấn lấy tất cả các bản ghi có mã phiên bản phù hợp
+    const chitietsanpham = await models.chitietsanpham.findAll({
+      where: { maPB }, // Điều kiện lọc
+      attributes: ["soSeri"], // Chỉ lấy các trường cần thiết
+    });
+
+    // Kiểm tra nếu không tìm thấy dữ liệu
+    if (!chitietsanpham || chitietsanpham.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy chi tiết sản phẩm.",
+      });
+    }
+
+    // Trả về kết quả
+    res.status(200).json({
+      success: true,
+      message: "Lấy thông tin chi tiết sản phẩm thành công.",
+      data: chitietsanpham,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách sản phẩm:", error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra trong quá trình xử lý.",
+    });
+  }
+};
+
+const addChiTietDonHang = async (req, res) => {
+  const { soSeri, giaBan, maPB } = req.body;
+
+  try {
+    // Kiểm tra dữ liệu đầu vào
+    if (!soSeri || !giaBan || !maPB) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng điền đầy đủ thông tin chi tiết đơn hàng.",
+      });
+    }
+
+    // Lấy mã đơn hàng gần nhất để tạo mã mới
+    const lastDonHang = await models.donhang.findOne({
+      order: [["maDH", "DESC"]], // Sắp xếp theo maDH giảm dần
+      attributes: ["maDH"], // Chỉ lấy trường maDH
+    });
+
+    // Tạo mã đơn hàng mới dựa trên mã đơn hàng gần nhất
+    const newMaDH = lastDonHang
+      ? `DH0${parseInt(lastDonHang.maDH.slice(3))}`
+      : "DH01"; // Nếu không có đơn hàng nào, tạo mã đơn hàng đầu tiên là "maDH1"
+
+    // Tạo chi tiết đơn hàng mới
+    const newChiTietDonHang = await models.chitietdonhang.create({
+      maDH: newMaDH,
+      soSeri,
+      giaBan,
+      maPB,
+    });
+
+    // Trả về phản hồi thành công
+    res.status(201).json({
+      success: true,
+      message: "Chi tiết đơn hàng đã được thêm thành công!",
+      data: newChiTietDonHang,
+    });
+  } catch (error) {
+    console.error("Lỗi khi thêm chi tiết đơn hàng:", error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi thêm chi tiết đơn hàng.",
     });
   }
 };
@@ -1407,4 +1587,8 @@ export {
   updateCart,
   deleteCart,
   getCart,
+  deleteCartKh,
+  addDonHang,
+  getChiTietSanPhamBymaPB,
+  addChiTietDonHang,
 };
