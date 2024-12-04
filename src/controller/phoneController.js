@@ -285,6 +285,13 @@ const getPhienBan = async (req, res) => {
           model: models.chitietphieunhap,
           as: "chitietphieunhaps", // Alias của bảng `chitietphieunhap`
           attributes: ["maPN", "soLuong", "donGiaNhap"], // Các cột cần lấy từ bảng `chitietphieunhap`
+          include: [
+            {
+              model: models.phieunhap,
+              as: "maPN_phieunhap", // Alias của bảng `phieunhap`
+              attributes: ["maPN", "ngayTao", "trangThai"], // Các cột cần lấy từ bảng `phieunhap`
+            },
+          ],
         },
       ],
     });
@@ -381,16 +388,10 @@ const getKhuyenMaiById = async (req, res) => {
 const updateKhuyenMai = async (req, res) => {
   try {
     // Lấy dữ liệu từ request body (cập nhật tất cả các thuộc tính)
-    const { id, moTa, dieuKien, mucGiam, trangThai } = req.body;
+    const { maKM, moTa, mucGiam, trangThai, maNV } = req.body;
 
     // Kiểm tra xem tất cả các tham số có được cung cấp không
-    if (
-      !id ||
-      !moTa ||
-      !dieuKien ||
-      mucGiam === undefined ||
-      trangThai === undefined
-    ) {
+    if (!moTa || mucGiam === undefined || trangThai === undefined) {
       return res
         .status(400)
         .json({ message: "Vui lòng cung cấp đầy đủ thông tin khuyến mãi" });
@@ -400,11 +401,11 @@ const updateKhuyenMai = async (req, res) => {
     const result = await models.khuyenmai.update(
       {
         moTa: moTa,
-        dieuKien: dieuKien,
         mucGiam: mucGiam,
         trangThai: trangThai,
+        maNV: maNV,
       },
-      { where: { maKM: id } } // Điều kiện xác định khuyến mãi cần cập nhật
+      { where: { maKM: maKM } } // Điều kiện xác định khuyến mãi cần cập nhật
     );
 
     // Kiểm tra nếu không có bản ghi nào được cập nhật
@@ -423,10 +424,10 @@ const updateKhuyenMai = async (req, res) => {
 const addKhuyenMai = async (req, res) => {
   try {
     // Lấy dữ liệu từ body của request
-    const { moTa, dieuKien, mucGiam, trangThai } = req.body;
+    const { moTa, mucGiam, trangThai, maNV } = req.body;
 
     // Kiểm tra nếu dữ liệu không đầy đủ
-    if (!moTa || !dieuKien || !mucGiam || !trangThai) {
+    if (!moTa || !mucGiam || !trangThai) {
       return res.status(400).json({
         success: false,
         message: "Vui lòng điền đầy đủ thông tin khuyến mãi.",
@@ -441,16 +442,16 @@ const addKhuyenMai = async (req, res) => {
 
     // Tạo mã khuyến mãi mới dựa trên mã khuyến mãi gần nhất
     const newMaKM = lastPromotion
-      ? `KM${parseInt(lastPromotion.maKM.slice(2)) + 1}`
-      : "KM1";
+      ? `KM0${parseInt(lastPromotion.maKM.slice(2)) + 1}`
+      : "KM001";
 
     // Tạo đối tượng mới cho khuyến mãi và lưu vào cơ sở dữ liệu
     const newKhuyenMai = await models.khuyenmai.create({
       maKM: newMaKM,
       moTa,
-      dieuKien,
       mucGiam,
       trangThai,
+      maNV,
     });
 
     // Trả về kết quả thành công
@@ -509,6 +510,46 @@ const getOrder = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const getdonHang = async (req, res) => {
+  try {
+    // Tìm các đơn hàng và bao gồm chi tiết đơn hàng cùng sản phẩm
+    const donhang = await models.donhang.findAll({
+      include: [
+        {
+          model: models.chitietdonhang, // Bảng chi tiết đơn hàng
+          as: "chitietdonhangs", // Alias cho `chitietdonhang`
+          include: [
+            {
+              model: models.phienbansp, // Bảng sản phẩm
+              as: "maPB_phienbansp", // Alias cho `sanpham`
+              include: [
+                {
+                  model: models.sanpham, // Bảng sản phẩm
+                  as: "maSP_sanpham", // Alias cho `sanpham`
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    // Kiểm tra nếu không có đơn hàng nào
+    if (donhang.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng nào.",
+      });
+    }
+
+    // Trả dữ liệu kết quả
+    responseData(res, "Lấy danh sách đơn hàng thành công", 200, donhang);
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu đơn hàng:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 const getChiTietOrder = async (req, res) => {
   const { maDH } = req.params; // Lấy mã khách hàng từ URL hoặc req.body nếu dùng POST
 
@@ -781,7 +822,32 @@ const deleteBaoHanh = async (req, res) => {
 
 const getPhieuNhap = async (req, res) => {
   try {
-    const phieuNhap = await models.phieunhap.findAll();
+    // Thực hiện JOIN với bảng chitietphieunhap, phienbansp và sanpham
+    const phieuNhap = await models.phieunhap.findAll({
+      include: [
+        {
+          model: models.chitietphieunhap, // Bao gồm bảng chitietphieunhap
+          as: "chitietphieunhaps", // Alias của bảng chitietphieunhap
+          required: false, // Sử dụng LEFT JOIN
+          include: [
+            {
+              model: models.phienbansp, // Bao gồm bảng phienbansp
+              as: "maPB_phienbansp", // Alias của bảng phienbansp
+              required: false, // Sử dụng LEFT JOIN
+              include: [
+                {
+                  model: models.sanpham, // Bao gồm bảng sanpham
+                  as: "maSP_sanpham", // Alias của bảng sanpham
+                  required: false, // Sử dụng LEFT JOIN
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    // Gửi phản hồi
     responseData(res, "Lấy phiếu nhập thành công", 200, phieuNhap);
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu phiếu nhập:", error);
@@ -791,16 +857,9 @@ const getPhieuNhap = async (req, res) => {
 
 const updatePhieuNhap = async (req, res) => {
   try {
-    const { maPN, ngayTao, tongTien, trangThai, maNV, maNCC } = req.body;
+    const { maPN, trangThai } = req.body;
 
-    if (
-      !maPN ||
-      !ngayTao ||
-      !tongTien ||
-      !maNV ||
-      !maNCC ||
-      trangThai === undefined
-    ) {
+    if (!maPN || trangThai === undefined) {
       return res
         .status(400)
         .json({ message: "Vui lòng cung cấp đầy đủ thông tin khuyến mãi" });
@@ -809,11 +868,7 @@ const updatePhieuNhap = async (req, res) => {
     const result = await models.phieunhap.update(
       {
         maPN,
-        ngayTao,
-        tongTien,
         trangThai,
-        maNV,
-        maNCC,
       },
       { where: { maPN: maPN } }
     );
@@ -860,17 +915,22 @@ const addPhieuNhap = async (req, res) => {
 
 const deletePhieuNhap = async (req, res) => {
   try {
-    const { maPN } = req.body; // Lấy idBaoHanh từ body của request
+    const { maPN } = req.body; // Lấy maPN từ body của request
 
-    // Kiểm tra nếu không có idBaoHanh được cung cấp
+    // Kiểm tra nếu không có maPN được cung cấp
     if (!maPN) {
       return res.status(400).json({
         success: false,
-        message: "Vui lòng cung cấp ID phiếu bảo hành để xóa.",
+        message: "Vui lòng cung cấp mã phiếu nhập để xóa.",
       });
     }
 
-    // Thực hiện xóa phiếu bảo hành
+    // Thực hiện xóa chi tiết phiếu nhập trước (nếu có)
+    const deletedChiTietPhieuNhap = await models.chitietphieunhap.destroy({
+      where: { maPN: maPN },
+    });
+
+    // Thực hiện xóa phiếu nhập
     const deletedCount = await models.phieunhap.destroy({
       where: { maPN: maPN },
     });
@@ -879,20 +939,22 @@ const deletePhieuNhap = async (req, res) => {
     if (deletedCount === 0) {
       return res.status(404).json({
         success: false,
-        message: "Phiếu bảo hành không tồn tại.",
+        message: "Phiếu nhập không tồn tại.",
       });
     }
 
     // Trả về phản hồi thành công nếu xóa thành công
     res.status(200).json({
       success: true,
-      message: "Xóa phiếu bảo hành thành công.",
+      message: "Xóa phiếu nhập và chi tiết thành công.",
+      deletedCount: deletedCount, // Số lượng phiếu nhập bị xóa
+      deletedChiTietCount: deletedChiTietPhieuNhap, // Số lượng chi tiết phiếu nhập bị xóa
     });
   } catch (error) {
-    console.error("Lỗi khi xóa phiếu bảo hành:", error);
+    console.error("Lỗi khi xóa phiếu nhập:", error);
     res.status(500).json({
       success: false,
-      message: "Có lỗi xảy ra khi xóa phiếu bảo hành.",
+      message: "Có lỗi xảy ra khi xóa phiếu nhập.",
     });
   }
 };
@@ -1416,10 +1478,9 @@ const getCart = async (req, res) => {
 };
 
 const addDonHang = async (req, res) => {
-  const { diaChiNhan, tongTien, httt, maKH } = req.body;
+  const { diaChiNhan, tongTien, httt, maKH, maKM } = req.body;
 
   try {
-    // Kiểm tra dữ liệu đầu vào
     if (!diaChiNhan || !tongTien || !httt || !maKH) {
       return res.status(400).json({
         success: false,
@@ -1427,29 +1488,26 @@ const addDonHang = async (req, res) => {
       });
     }
 
-    // Lấy mã đơn hàng gần nhất để tạo mã mới
     const lastDonHang = await models.donhang.findOne({
-      order: [["maDH", "DESC"]], // Sắp xếp theo maDH giảm dần
-      attributes: ["maDH"], // Chỉ lấy trường maDH
+      order: [["maDH", "DESC"]],
+      attributes: ["maDH"],
     });
 
-    // Tạo mã đơn hàng mới dựa trên mã đơn hàng gần nhất
     const newMaDH = lastDonHang
       ? `DH0${parseInt(lastDonHang.maDH.slice(3)) + 1}`
-      : "DH01"; // Nếu không có đơn hàng nào, tạo mã đơn hàng đầu tiên là "maDH1"
+      : "DH01";
 
-    // Tạo đối tượng đơn hàng mới
     const donHang = await models.donhang.create({
       maDH: newMaDH,
       diaChiNhan,
       ngayDat: new Date(),
       tongTien,
-      httt, // Hình thức thanh toán
-      trangThai: "Đang xử lí", // Trạng thái đơn hàng (ví dụ: 'Chờ xử lý', 'Đang giao', 'Hoàn thành', ...)
-      maKH, // Mã khách hàng
+      httt,
+      trangThai: "Chờ xác nhận",
+      maKH,
+      maKM,
     });
 
-    // Trả về phản hồi thành công
     res.status(201).json({
       success: true,
       message: "Đơn hàng đã được tạo thành công!",
@@ -1550,6 +1608,63 @@ const addChiTietDonHang = async (req, res) => {
   }
 };
 
+const getChiTietPhieuNhap = async (req, res) => {
+  try {
+    // Thực hiện JOIN với bảng phienbansp qua maPB và JOIN với bảng sanpham qua maSP
+    const phieuNhap = await models.chitietphieunhap.findAll({
+      include: [
+        {
+          model: models.phienbansp, // Bao gồm bảng phienbansp
+          as: "maPB_phienbansp", // Tên alias của bảng phienbansp
+          required: true, // Sử dụng INNER JOIN (bắt buộc có dữ liệu từ cả hai bảng)
+          include: [
+            {
+              model: models.sanpham, // Bao gồm bảng sanpham
+              as: "maSP_sanpham", // Tên alias của bảng sanpham
+              required: true, // Sử dụng INNER JOIN (bắt buộc có dữ liệu từ cả hai bảng)
+            },
+          ],
+        },
+      ],
+    });
+
+    // Gửi phản hồi
+    responseData(res, "Lấy chi tiết phiếu nhập thành công", 200, phieuNhap);
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu chi tiết phiếu nhập:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const updateDonHang = async (req, res) => {
+  try {
+    const { maDH, trangThai } = req.body;
+
+    if (!maDH || trangThai === undefined) {
+      return res
+        .status(400)
+        .json({ message: "Vui lòng cung cấp đầy đủ thông tin khuyến mãi" });
+    }
+
+    const result = await models.donhang.update(
+      {
+        maDH,
+        trangThai,
+      },
+      { where: { maDH: maDH } }
+    );
+
+    if (result[0] === 0) {
+      return res.status(404).json({ message: "phiếu nhập không tồn tại" });
+    }
+
+    res.status(200).json({ message: "Cập nhật phiếu nhập thành công" });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật phiếu nhập:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export {
   getPhone,
   getPhienBan,
@@ -1591,4 +1706,7 @@ export {
   addDonHang,
   getChiTietSanPhamBymaPB,
   addChiTietDonHang,
+  getChiTietPhieuNhap,
+  getdonHang,
+  updateDonHang,
 };

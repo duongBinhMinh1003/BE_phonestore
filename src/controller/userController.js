@@ -1,26 +1,30 @@
 import mysql2 from "mysql2";
 import { responseData } from "../config/reponse.js";
+import sendMail from "../config/sendMail.js";
 import sequelize from "../models/connect.js";
 import initModels from "../models/init-models.js";
-
+import bcrypt from "bcrypt";
 const models = initModels(sequelize);
 
 const login = async (req, res) => {
   const { tenDangNhap, matKhau } = req.body;
   try {
+    // Kiểm tra tài khoản đăng nhập
     const checkUser = await models.taikhoan.findOne({
       where: {
         tenDangNhap: tenDangNhap,
         matKhau: matKhau,
       },
     });
+
     if (!checkUser) {
       return res.status(401).send("Login không thành công!");
     }
+
     res.send(checkUser);
   } catch (error) {
     console.error("Error in loginUser:", error);
-    return res.status(500).json({ message: "Internal server error123" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -54,10 +58,9 @@ const login = async (req, res) => {
 // };
 
 const signUp = async (req, res) => {
-  const { tenDangNhap, matKhau, quyen, trangThai, email } = req.body; // Thêm email vào req.body
+  const { tenDangNhap, matKhau, quyen, trangThai, email } = req.body;
 
   try {
-    // Kiểm tra xem tài khoản đã tồn tại
     const existingAccount = await models.taikhoan.findOne({
       where: { tenDangNhap },
     });
@@ -74,7 +77,6 @@ const signUp = async (req, res) => {
       return res.status(400).json({ message: "Email đã tồn tại" });
     }
 
-    // Tạo tkId mới
     const lastAccount = await models.taikhoan.findOne({
       order: [["tkId", "DESC"]],
       attributes: ["tkId"],
@@ -84,7 +86,6 @@ const signUp = async (req, res) => {
       ? `TK${parseInt(lastAccount.tkId.slice(2)) + 1}`
       : "TK1";
 
-    // Tạo tài khoản mới
     const newAccount = await models.taikhoan.create({
       tkId: newTkId,
       tenDangNhap,
@@ -93,6 +94,16 @@ const signUp = async (req, res) => {
       trangThai,
     });
 
+    const promoCode = await models.khuyenmai.findOne({
+      order: sequelize.random(),
+      attributes: ["maKM"],
+    });
+
+    if (!promoCode) {
+      return res.status(404).send("Không tìm thấy mã khuyến mãi.");
+    }
+
+    sendMail(email, "PHONE STORE", promoCode.maKM);
     return res.status(200).json({
       message: "Sign up thành công",
       account: {
