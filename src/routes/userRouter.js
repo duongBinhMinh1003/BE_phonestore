@@ -2,6 +2,7 @@ import express from "express";
 import {
   addNhanVien,
   addTaiKhoan,
+  getKhachHang,
   getNhanVien,
   getTaiKhoan,
   getUser,
@@ -24,6 +25,7 @@ userRouter.get("/get-nhanvien", getNhanVien);
 userRouter.post("/update-khachhang", updateKhachHang);
 userRouter.post("/update-taikhoan", updateTaiKhoan);
 userRouter.get("/get-taikhoan", getTaiKhoan);
+userRouter.get("/get-khachhang", getKhachHang);
 userRouter.put("/update-taikhoanadmin", updateTaiKhoanAdmin);
 userRouter.post("/add-taikhoan", addTaiKhoan);
 userRouter.put("/update-nhanvien", updateNhanVien);

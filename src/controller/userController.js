@@ -83,8 +83,8 @@ const signUp = async (req, res) => {
     });
 
     const newTkId = lastAccount
-      ? `TK${parseInt(lastAccount.tkId.slice(2)) + 1}`
-      : "TK1";
+      ? `TK0${parseInt(lastAccount.tkId.slice(2)) + 1}`
+      : "TK001";
 
     const newAccount = await models.taikhoan.create({
       tkId: newTkId,
@@ -199,6 +199,29 @@ const getUser = async (req, res) => {
       data: khachHang
         ? { type: "khachHang", ...khachHang.dataValues }
         : { type: "nhanVien", ...nhanVien.dataValues },
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin:", error);
+    res.status(500).json({ message: "Lỗi hệ thống", error });
+  }
+};
+
+const getKhachHang = async (req, res) => {
+  try {
+    // Tìm khách hàng theo `maTK`
+    const khachHang = await models.khachhang.findAll();
+
+    // Kiểm tra nếu cả hai không tồn tại
+    if (!khachHang && !nhanVien) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy dữ liệu với ID này" });
+    }
+
+    // Ưu tiên trả khách hàng, nếu không có trả nhân viên
+    res.status(200).json({
+      message: "Lấy thông tin thành công",
+      khachHang,
     });
   } catch (error) {
     console.error("Lỗi khi lấy thông tin:", error);
@@ -579,4 +602,5 @@ export {
   getNhanVien,
   updateNhanVien,
   addNhanVien,
+  getKhachHang,
 };

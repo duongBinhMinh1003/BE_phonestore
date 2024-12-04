@@ -43,6 +43,8 @@ import {
   getChiTietPhieuNhap,
   getdonHang,
   updateDonHang,
+  getAllDonHang,
+  getChiTietDonHang,
 } from "../controller/phoneController.js";
 const phoneRouter = express.Router();
 
@@ -85,6 +87,8 @@ phoneRouter.post("/save-cart", saveCart);
 phoneRouter.put("/update-cart", updateCart);
 phoneRouter.post("/get-cart", getCart);
 phoneRouter.get("/get-donhang", getdonHang);
+phoneRouter.get("/get-alldonhang", getAllDonHang);
+phoneRouter.get("/get-chitietdonhang", getChiTietDonHang);
 phoneRouter.get("/get-chitietphieunhap", getChiTietPhieuNhap);
 phoneRouter.post("/get-ctspbyid", getChiTietSanPhamBymaPB);
 phoneRouter.post("/add-chitietdonhang", addChiTietDonHang);

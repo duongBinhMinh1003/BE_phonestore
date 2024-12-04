@@ -510,6 +510,25 @@ const getOrder = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const getAllDonHang = async (req, res) => {
+  try {
+    // Tìm các đơn hàng có mã khách hàng tương ứn
+    const donhang = await models.donhang.findAll();
+
+    // Kiểm tra nếu không có đơn hàng nào
+    if (donhang.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng nào cho mã khách hàng này.",
+      });
+    }
+
+    responseData(res, "Lấy danh sách đơn hàng thành công", 200, donhang);
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu phiếu đơn hàng:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 const getdonHang = async (req, res) => {
   try {
     // Tìm các đơn hàng và bao gồm chi tiết đơn hàng cùng sản phẩm
@@ -573,6 +592,41 @@ const getChiTietOrder = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const getChiTietDonHang = async (req, res) => {
+  try {
+    // Tìm các đơn hàng và liên kết với bảng pbsp
+    const donhang = await models.chitietdonhang.findAll({
+      include: [
+        {
+          model: models.phienbansp,
+          as: "maPB_phienbansp", // Tên alias được định nghĩa trong quan hệ
+          attributes: ["maPB", "maSP", "mauSac"], // Chọn các cột muốn lấy
+          include: [
+            {
+              model: models.sanpham,
+              as: "maSP_sanpham",
+              attributes: ["thuongHieu"],
+            },
+          ],
+        },
+      ],
+    });
+
+    // Kiểm tra nếu không có đơn hàng nào
+    if (donhang.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng nào.",
+      });
+    }
+
+    responseData(res, "Lấy danh sách đơn hàng thành công", 200, donhang);
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu phiếu đơn hàng:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 const updateNhaCungCap = async (req, res) => {
   try {
     // Lấy dữ liệu từ request body (cập nhật tất cả các thuộc tính)
@@ -1709,4 +1763,6 @@ export {
   getChiTietPhieuNhap,
   getdonHang,
   updateDonHang,
+  getAllDonHang,
+  getChiTietDonHang,
 };
