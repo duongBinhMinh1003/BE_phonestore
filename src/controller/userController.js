@@ -135,8 +135,8 @@ const postUser = async (req, res) => {
       attributes: ["tkId"],
     });
     const newTkId = lastAccount
-      ? `TK${parseInt(lastAccount.tkId.slice(2))}`
-      : "TK1";
+      ? `TK0${parseInt(lastAccount.tkId.slice(2))}`
+      : "TK001";
 
     // Tạo bản ghi tài khoản mới
 
@@ -146,8 +146,8 @@ const postUser = async (req, res) => {
       attributes: ["maKH"],
     });
     const newMaKh = lastUser
-      ? `KH${parseInt(lastUser.maKH.slice(2)) + 1}`
-      : "KH1";
+      ? `KH0${parseInt(lastUser.maKH.slice(2)) + 1}`
+      : "KH001";
 
     // Tạo người dùng mới trong bảng khachhang
     const newUser = await models.khachhang.create({
