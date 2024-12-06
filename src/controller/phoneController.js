@@ -1720,7 +1720,7 @@ const getChiTietPhieuNhap = async (req, res) => {
 
 const updateDonHang = async (req, res) => {
   try {
-    const { maDH, trangThai } = req.body;
+    const { maDH, maNV, trangThai } = req.body;
 
     if (!maDH || trangThai === undefined) {
       return res
@@ -1732,6 +1732,7 @@ const updateDonHang = async (req, res) => {
       {
         maDH,
         trangThai,
+        maNV,
       },
       { where: { maDH: maDH } }
     );
