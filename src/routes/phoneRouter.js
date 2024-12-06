@@ -45,6 +45,8 @@ import {
   updateDonHang,
   getAllDonHang,
   getChiTietDonHang,
+  updateChiTietPhieuNhap,
+  updateTongGiaPhieuNhap,
 } from "../controller/phoneController.js";
 const phoneRouter = express.Router();
 
@@ -93,4 +95,6 @@ phoneRouter.get("/get-chitietphieunhap", getChiTietPhieuNhap);
 phoneRouter.post("/get-ctspbyid", getChiTietSanPhamBymaPB);
 phoneRouter.post("/add-chitietdonhang", addChiTietDonHang);
 phoneRouter.put("/update-donhang", updateDonHang);
+phoneRouter.put("/update-chitietphieunhap", updateChiTietPhieuNhap);
+phoneRouter.put("/update-tonggiapn", updateTongGiaPhieuNhap);
 export default phoneRouter;

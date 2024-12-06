@@ -103,6 +103,14 @@ const addPhone = async (req, res) => {
       trangThai,
     } = req.body;
 
+    const existingTenSP = await models.sanpham.findOne({
+      where: { tenSP },
+    });
+
+    if (existingTenSP) {
+      return res.status(400).json({ message: "Sản phẩm  đã tồn tại" });
+    }
+
     // Kiểm tra dữ liệu đầu vào
     if (
       !tenSP ||
@@ -732,13 +740,11 @@ const addNhaCungCap = async (req, res) => {
 const updatePhieuBaoHanh = async (req, res) => {
   try {
     // Lấy dữ liệu từ request body (cập nhật tất cả các thuộc tính)
-    const { maPBH, thoiGianTao, tongTien, trangThai, maNV, soSeri, noiDung } =
-      req.body;
+    const { maPBH, tongTien, trangThai, maNV, soSeri, noiDung } = req.body;
 
     // Kiểm tra xem tất cả các tham số có được cung cấp không
     if (
       !maPBH ||
-      !thoiGianTao ||
       !tongTien ||
       !maNV ||
       !soSeri ||
@@ -754,7 +760,7 @@ const updatePhieuBaoHanh = async (req, res) => {
     const result = await models.phieubaohanh.update(
       {
         maPBH,
-        thoiGianTao,
+
         tongTien,
         trangThai,
         maNV,
@@ -780,18 +786,10 @@ const updatePhieuBaoHanh = async (req, res) => {
 const addBaoHanh = async (req, res) => {
   try {
     // Lấy dữ liệu từ body của request
-    const { thoiGianTao, tongTien, trangThai, maNV, soSeri, noiDung } =
-      req.body;
+    const { tongTien, trangThai, maNV, soSeri, noiDung, maKH } = req.body;
 
     // Kiểm tra nếu dữ liệu không đầy đủ
-    if (
-      !thoiGianTao ||
-      !tongTien ||
-      !maNV ||
-      !soSeri ||
-      !noiDung ||
-      trangThai === undefined
-    ) {
+    if (!tongTien || !maNV || !soSeri || !noiDung || trangThai === undefined) {
       return res.status(400).json({
         success: false,
         message: "Vui lòng điền đầy đủ thông tin bảo hành.",
@@ -807,17 +805,18 @@ const addBaoHanh = async (req, res) => {
     // Tạo mã bảo hành mới dựa trên mã bảo hành gần nhất
     const newMaPBH = lastBaoHanh
       ? `PBH0${parseInt(lastBaoHanh.maPBH.slice(3)) + 1}`
-      : "PBH1";
+      : "PBH001";
 
     // Tạo đối tượng mới cho bảo hành và lưu vào cơ sở dữ liệu
     const newBaoHanh = await models.phieubaohanh.create({
       maPBH: newMaPBH,
-      thoiGianTao,
+      thoiGianTao: new Date(),
       tongTien,
       trangThai,
       maNV,
       soSeri,
       noiDung,
+      maKH,
     });
 
     // Trả về kết quả thành công
@@ -925,6 +924,51 @@ const updatePhieuNhap = async (req, res) => {
         trangThai,
       },
       { where: { maPN: maPN } }
+    );
+
+    if (result[0] === 0) {
+      return res.status(404).json({ message: "phiếu nhập không tồn tại" });
+    }
+
+    res.status(200).json({ message: "Cập nhật phiếu nhập thành công" });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật phiếu nhập:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+const updateTongGiaPhieuNhap = async (req, res) => {
+  try {
+    const { maPN, tongTien } = req.body;
+
+    const result = await models.phieunhap.update(
+      {
+        maPN,
+        tongTien,
+      },
+      { where: { maPN: maPN } }
+    );
+
+    if (result[0] === 0) {
+      return res.status(404).json({ message: "phiếu nhập không tồn tại" });
+    }
+
+    res.status(200).json({ message: "Cập nhật phiếu nhập thành công" });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật phiếu nhập:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const updateChiTietPhieuNhap = async (req, res) => {
+  try {
+    const { maPN, maPB, soLuong, donGiaNhap } = req.body;
+
+    const result = await models.chitietphieunhap.update(
+      {
+        soLuong,
+        donGiaNhap,
+      },
+      { where: { maPN: maPN, maPB: maPB } }
     );
 
     if (result[0] === 0) {
@@ -1082,17 +1126,8 @@ const updatePhienBan = async (req, res) => {
 const addPhienBan = async (req, res) => {
   try {
     // Lấy dữ liệu từ body của request
-    const {
-      maSP,
-      mauSac,
-      RAM,
-      ROM,
-      soLuong,
-      giaGiam,
-      giaBan,
-      trangThai,
-      maPB,
-    } = req.body;
+    const { maSP, mauSac, RAM, ROM, soLuong, giaGiam, giaBan, trangThai } =
+      req.body;
 
     // Kiểm tra dữ liệu đầu vào
     if (
@@ -1108,13 +1143,6 @@ const addPhienBan = async (req, res) => {
       return res
         .status(400)
         .json({ message: "Vui lòng cung cấp đầy đủ thông tin sản phẩm" });
-    }
-    const existingMaPhienBan = await models.phienbansp.findOne({
-      where: { maPB },
-    });
-
-    if (existingMaPhienBan) {
-      return res.status(400).json({ message: "Mã phiên bản đã tồn tại" });
     }
 
     // Lấy khuyến mãi gần nhất để tạo mã mới
@@ -1765,4 +1793,6 @@ export {
   updateDonHang,
   getAllDonHang,
   getChiTietDonHang,
+  updateChiTietPhieuNhap,
+  updateTongGiaPhieuNhap,
 };

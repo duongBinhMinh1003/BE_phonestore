@@ -266,7 +266,7 @@ const updateKhachHang = async (req, res) => {
 };
 
 const updateTaiKhoan = async (req, res) => {
-  const { tkId, matKhau, email } = req.body;
+  const { tkId, matKhau } = req.body;
   try {
     // Kiểm tra xem tài khoản có tồn tại hay không
     const existingAccount = await models.taikhoan.findOne({

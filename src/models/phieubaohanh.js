@@ -14,7 +14,7 @@ export default class phieubaohanh extends Model {
       allowNull: false
     },
     tongTien: {
-      type: DataTypes.DECIMAL(10,3),
+      type: DataTypes.DOUBLE,
       allowNull: false
     },
     trangThai: {
